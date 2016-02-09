@@ -2,8 +2,8 @@
 --****************************************
 -- Author:			Murali Pinnaka
 -- Reviewed by: 
--- Date created:	28 Jan 2009
--- Date updated:	12 Mar 2014
+-- Date created:	09 Feb 2016
+-- Date updated:	
 -- WR:				2104038
 -- URL:				bostonscientific-trails.mdsol.com 
 -- ZERO_AF / Prod environment
@@ -314,10 +314,10 @@ create table Subjects_TOupdate(SubjectID int, DataPageID int, FormID int)
 					group by r.DataPageID) dt on dt.DataPageID = dpg.DataPageID
 			where ---dpg.datapageid = 5065612
 		dbo.fnlocaldefault(projectname) = 'ZERO_AF'
-		and dbo.fnlocaldefault(environmentnameid) = 'DEV'
+		and dbo.fnlocaldefault(environmentnameid) = 'prod'
 		and f.OID = 'AE'
 		and dbo.fnLocalizedInstanceName('eng',dpg.InstanceID) = 'Adverse Event (2)'
-		and s.SubjectName in ('EN 1630ZA004_Copy','EN 1798ZA029_Copy')
+		and s.SubjectName in ('EN 1630ZA004','EN 1798ZA029')
 		--and r.RecordPosition > 0
 		and dp.deleted = 0
 		and dpg.deleted = 0
