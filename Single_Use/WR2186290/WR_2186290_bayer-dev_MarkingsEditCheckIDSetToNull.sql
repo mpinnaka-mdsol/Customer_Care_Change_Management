@@ -2,7 +2,7 @@
 -- Author: Jane Goldiner
 -- Date:   19 Nov 2013
 -- Updated Murali Pinnaka
--- Updated 17 March 2016
+-- Updated 21 March 2016
 -- URL:    bayer-bsp.mdsol.com
 -- Rave Version: 2015.2.2
 -- Description:
@@ -115,21 +115,28 @@ and dbo.fnlocaldefault(st.environmentnameid) = @EnvironmentName
 
 -------create table to select necessary objects to trigger the status rollup
 
-SELECT distinct sd.StudyID, ss.StudySiteID, sb.SubjectID, 
-        i.InstanceID, dpg.DataPageID, r.RecordID, dp.DataPointID
+SELECT distinct st.StudyID, 
+                ss.StudySiteID, 
+                s.SubjectID,  
+                dpg.DataPageID, 
+                r.RecordID, 
+                dp.DataPointID
 INTO #Queries_TMP
-FROM DataPoints dp
-    inner join Records r on r.RecordID = dp.RecordID
-    inner join Fields fi on fi.FieldID = dp.FieldID
-    inner join DataPages dpg on dpg.DataPageID = r.DataPageID
-    inner join Forms f on f.formID = dpg.FormID	
-    inner join Subjects sb on sb.SubjectID = dpg.SubjectID
-    left join Instances i on i.SubjectID = sb.SubjectID
-    inner join StudySites ss on sb.StudySiteID = ss.StudySiteID
-    inner join Sites si on si.SiteID = ss.SiteID
-    inner join Studies sd on sd.StudyID = ss.StudyID
-    inner join Projects p on p.ProjectID = sd.ProjectID
-    WHERE sb.SubjectId in (Select distinct SubjectID from #Markings)
+FROM dbo.Projects p
+inner join dbo.Studies st on st.ProjectID = p.ProjectID
+inner join dbo.StudySites ss on ss.StudyID = st.StudyID
+inner join dbo.Subjects s on s.StudySiteID = ss.StudySiteID
+inner join dbo.DataPages dpg on dpg.SubjectID = s.SubjectID
+inner join dbo.Records r on r.DataPageID = dpg.DataPageID
+left join dbo.DataPoints dp on dp.RecordID = r.RecordID 
+WHERE s.SubjectId in (Select distinct SubjectID from #Markings)
+
+select distinct i.InstanceID
+into #Instances
+from #Queries_TMP t
+inner join dbo.Instances i on i.SubjectID = t.SubjectID
+
+
 
 -------- update --------
 
@@ -158,7 +165,7 @@ begin catch
 end catch
 
 if @error_number = 0
-    commit transaction
+   commit transaction
 else
       begin
             rollback transaction
@@ -184,7 +191,7 @@ inner join objectstatusallroles os on os.ObjectID = t.DataPageID and os.ObjectTy
 
 update objectstatusallroles
 set ExpirationDate = '1900-01-01 00:00:00.000'
-from #Queries_TMP t
+from #Instances t
 inner join objectstatusallroles os on os.ObjectID = t.InstanceID and os.ObjectTypeID = @InstanceTypeID
 
 update objectstatusallroles
@@ -249,4 +256,8 @@ IF EXISTS (SELECT * FROM sysobjects
 IF EXISTS (SELECT * FROM sysobjects 
             WHERE id = Object_ID(N'dbo.#QueryNoChecks') AND type = 'U')
     drop table #QueryNoChecks
+    
+IF EXISTS (SELECT * FROM sysobjects 
+            WHERE id = Object_ID(N'dbo.#Instances') AND type = 'U')
+    drop table #Instances
 go
